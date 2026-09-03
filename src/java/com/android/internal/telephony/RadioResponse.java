@@ -40,6 +40,7 @@ import android.os.AsyncResult;
 import android.os.Message;
 import android.os.SystemClock;
 import android.telephony.AnomalyReporter;
+import android.telephony.AccessNetworkConstants.AccessNetworkType;
 import android.telephony.BarringInfo;
 import android.telephony.CarrierRestrictionRules;
 import android.telephony.CellInfo;
@@ -49,6 +50,7 @@ import android.telephony.NeighboringCellInfo;
 import android.telephony.NetworkScanRequest;
 import android.telephony.RadioAccessFamily;
 import android.telephony.RadioAccessSpecifier;
+import android.telephony.ServiceState;
 import android.telephony.SignalStrength;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
@@ -2453,12 +2455,26 @@ public class RadioResponse extends IRadioResponse.Stub {
             ArrayList<OperatorInfo> ret = new ArrayList<OperatorInfo>();
             for (int i = 0; i < networkInfos.size(); i++) {
                 String operatorNumeric = networkInfos.get(i).operatorNumeric;
+                int ran = AccessNetworkType.UNKNOWN;
                 if (operatorNumeric != null) {
-                    operatorNumeric = operatorNumeric.split("\\+")[0];
+                    int separator = operatorNumeric.lastIndexOf('+');
+                    if (separator >= 0) {
+                        if (separator + 1 < operatorNumeric.length()) {
+                            try {
+                                int rilRadioTechnology = Integer.parseInt(
+                                        operatorNumeric.substring(separator + 1));
+                                ran = ServiceState.rilRadioTechnologyToAccessNetworkType(
+                                        rilRadioTechnology);
+                            } catch (NumberFormatException ignored) {
+                                // Keep the access network unknown for malformed legacy responses.
+                            }
+                        }
+                        operatorNumeric = operatorNumeric.substring(0, separator);
+                    }
                 }
                 ret.add(new OperatorInfo(networkInfos.get(i).alphaLong,
                         networkInfos.get(i).alphaShort, operatorNumeric,
-                        RILUtils.convertHalOperatorStatus(networkInfos.get(i).status)));
+                        RILUtils.convertHalOperatorStatus(networkInfos.get(i).status), ran));
             }
             if (responseInfo.error == RadioError.NONE) {
                 sendMessageResponse(rr.mResult, ret);

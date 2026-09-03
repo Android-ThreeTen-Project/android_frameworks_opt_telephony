@@ -2486,7 +2486,7 @@ public class RIL extends BaseCommands implements CommandsInterface {
                     mRILDefaultWorkSource);
 
             if (mUseOldMncMccFormat && !TextUtils.isEmpty(operatorNumeric)) {
-                operatorNumeric += "+";
+                operatorNumeric += "+" + convertAntToLegacyRilRadioTechnology(ran);
             }
 
             if (RILJ_LOGD) {
@@ -4644,6 +4644,25 @@ public class RIL extends BaseCommands implements CommandsInterface {
             }
         } else {
             riljLoge("setLinkCapacityReportingCriteria ignored on IRadio version less than 1.2");
+        }
+    }
+
+    /** Converts AccessNetworkType to the radio technology suffix used by legacy RILs. */
+    private static String convertAntToLegacyRilRadioTechnology(int accessNetworkType) {
+        switch (accessNetworkType) {
+            case AccessNetworkType.GERAN:
+                return Integer.toString(ServiceState.RIL_RADIO_TECHNOLOGY_GSM);
+            case AccessNetworkType.UTRAN:
+                return Integer.toString(ServiceState.RIL_RADIO_TECHNOLOGY_UMTS);
+            case AccessNetworkType.EUTRAN:
+                return Integer.toString(ServiceState.RIL_RADIO_TECHNOLOGY_LTE);
+            case AccessNetworkType.CDMA2000:
+                return Integer.toString(ServiceState.RIL_RADIO_TECHNOLOGY_IS95A);
+            case AccessNetworkType.NGRAN:
+                return Integer.toString(ServiceState.RIL_RADIO_TECHNOLOGY_NR);
+            case AccessNetworkType.UNKNOWN:
+            default:
+                return "";
         }
     }
 
