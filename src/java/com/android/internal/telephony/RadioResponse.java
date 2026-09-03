@@ -2447,6 +2447,17 @@ public class RadioResponse extends IRadioResponse.Stub {
         }
     }
 
+    private static OperatorInfo.State convertHalOperatorStatusToState(int status) {
+        if (status == android.hardware.radio.V1_0.OperatorStatus.AVAILABLE) {
+            return OperatorInfo.State.AVAILABLE;
+        } else if (status == android.hardware.radio.V1_0.OperatorStatus.CURRENT) {
+            return OperatorInfo.State.CURRENT;
+        } else if (status == android.hardware.radio.V1_0.OperatorStatus.FORBIDDEN) {
+            return OperatorInfo.State.FORBIDDEN;
+        }
+        return OperatorInfo.State.UNKNOWN;
+    }
+
     private void responseOperatorInfos(RadioResponseInfo responseInfo,
             ArrayList<android.hardware.radio.V1_0.OperatorInfo> networkInfos) {
         RILRequest rr = mRil.processResponse(responseInfo);
@@ -2474,7 +2485,7 @@ public class RadioResponse extends IRadioResponse.Stub {
                 }
                 ret.add(new OperatorInfo(networkInfos.get(i).alphaLong,
                         networkInfos.get(i).alphaShort, operatorNumeric,
-                        RILUtils.convertHalOperatorStatus(networkInfos.get(i).status), ran));
+                        convertHalOperatorStatusToState(networkInfos.get(i).status), ran));
             }
             if (responseInfo.error == RadioError.NONE) {
                 sendMessageResponse(rr.mResult, ret);
