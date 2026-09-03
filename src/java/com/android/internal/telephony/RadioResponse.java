@@ -54,6 +54,7 @@ import android.telephony.NetworkScanRequest;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.RadioAccessFamily;
 import android.telephony.RadioAccessSpecifier;
+import android.telephony.ServiceState;
 import android.telephony.SignalStrength;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
@@ -2554,17 +2555,17 @@ public class RadioResponse extends IRadioResponse.Stub {
         }
     }
 
-    private static String convertOpertatorInfoToString(int status) {
+    private static OperatorInfo.State convertOperatorInfoToState(int status) {
         if (status == android.hardware.radio.V1_0.OperatorStatus.UNKNOWN) {
-            return "unknown";
+            return OperatorInfo.State.UNKNOWN;
         } else if (status == android.hardware.radio.V1_0.OperatorStatus.AVAILABLE) {
-            return "available";
+            return OperatorInfo.State.AVAILABLE;
         } else if (status == android.hardware.radio.V1_0.OperatorStatus.CURRENT) {
-            return "current";
+            return OperatorInfo.State.CURRENT;
         } else if (status == android.hardware.radio.V1_0.OperatorStatus.FORBIDDEN) {
-            return "forbidden";
+            return OperatorInfo.State.FORBIDDEN;
         } else {
-            return "";
+            return OperatorInfo.State.UNKNOWN;
         }
     }
 
@@ -2577,12 +2578,26 @@ public class RadioResponse extends IRadioResponse.Stub {
             ArrayList<OperatorInfo> ret = new ArrayList<OperatorInfo>();
             for (int i = 0; i < networkInfos.size(); i++) {
                 String operatorNumeric = networkInfos.get(i).operatorNumeric;
+                int ran = AccessNetworkConstants.AccessNetworkType.UNKNOWN;
                 if (operatorNumeric != null) {
-                    operatorNumeric = operatorNumeric.split("\\+")[0];
+                    int separator = operatorNumeric.lastIndexOf('+');
+                    if (separator >= 0) {
+                        if (separator + 1 < operatorNumeric.length()) {
+                            try {
+                                int rilRadioTechnology = Integer.parseInt(
+                                        operatorNumeric.substring(separator + 1));
+                                ran = ServiceState.rilRadioTechnologyToAccessNetworkType(
+                                        rilRadioTechnology);
+                            } catch (NumberFormatException ignored) {
+                                // Keep the access network unknown for malformed legacy responses.
+                            }
+                        }
+                        operatorNumeric = operatorNumeric.substring(0, separator);
+                    }
                 }
                 ret.add(new OperatorInfo(networkInfos.get(i).alphaLong,
                         networkInfos.get(i).alphaShort, operatorNumeric,
-                        convertOpertatorInfoToString(networkInfos.get(i).status)));
+                        convertOperatorInfoToState(networkInfos.get(i).status), ran));
             }
             if (responseInfo.error == RadioError.NONE) {
                 sendMessageResponse(rr.mResult, ret);
