@@ -20,8 +20,8 @@ import android.os.RemoteException;
 import android.telephony.Rlog;
 
 /**
- * A holder for IRadioModem.
- * Use getAidl to get IRadioModem and call the AIDL implementations of the HAL APIs.
+ * A holder for IRadioModem. Use getHidl to get IRadio 1.0 and call the HIDL implementations or
+ * getAidl to get IRadioModem and call the AIDL implementations of the HAL APIs.
  */
 public class RadioModemProxy extends RadioServiceProxy {
     private static final String TAG = "RadioModemProxy";
@@ -83,11 +83,11 @@ public class RadioModemProxy extends RadioServiceProxy {
      * @throws RemoteException
      */
     public void enableModem(int serial, boolean on) throws RemoteException {
-        if (isEmpty()) return;
+        if (isEmpty() || mHalVersion.less(RIL.RADIO_HAL_VERSION_1_3)) return;
         if (isAidl()) {
             mModemProxy.enableModem(serial, on);
         } else {
-            mRadioProxy.enableModem(serial, on);
+            ((android.hardware.radio.V1_3.IRadio) mRadioProxy).enableModem(serial, on);
         }
     }
 
@@ -166,11 +166,11 @@ public class RadioModemProxy extends RadioServiceProxy {
      * @throws RemoteException
      */
     public void getModemStackStatus(int serial) throws RemoteException {
-        if (isEmpty()) return;
+        if (isEmpty() || mHalVersion.less(RIL.RADIO_HAL_VERSION_1_3)) return;
         if (isAidl()) {
             mModemProxy.getModemStackStatus(serial);
         } else {
-            mRadioProxy.getModemStackStatus(serial);
+            ((android.hardware.radio.V1_3.IRadio) mRadioProxy).getModemStackStatus(serial);
         }
     }
 
@@ -186,6 +186,12 @@ public class RadioModemProxy extends RadioServiceProxy {
         } else {
             mRadioProxy.getRadioCapability(serial);
         }
+    }
+
+    /** Call the legacy HIDL IRadio#nvReadItem command. */
+    public void nvReadItem(int serial, int itemId) throws RemoteException {
+        if (isEmpty() || isAidl()) return;
+        mRadioProxy.nvReadItem(serial, itemId);
     }
 
     /**
@@ -204,6 +210,22 @@ public class RadioModemProxy extends RadioServiceProxy {
         } else {
             mRadioProxy.nvResetConfig(serial, RILUtils.convertToHalResetNvType(resetType));
         }
+    }
+
+    /** Call the legacy HIDL IRadio#nvWriteCdmaPrl command. */
+    public void nvWriteCdmaPrl(int serial, byte[] prl) throws RemoteException {
+        if (isEmpty() || isAidl()) return;
+        mRadioProxy.nvWriteCdmaPrl(serial, RILUtils.primitiveArrayToArrayList(prl));
+    }
+
+    /** Call the legacy HIDL IRadio#nvWriteItem command. */
+    public void nvWriteItem(int serial, int itemId, String itemValue) throws RemoteException {
+        if (isEmpty() || isAidl()) return;
+        android.hardware.radio.V1_0.NvWriteItem item =
+                new android.hardware.radio.V1_0.NvWriteItem();
+        item.itemId = itemId;
+        item.value = itemValue;
+        mRadioProxy.nvWriteItem(serial, item);
     }
 
     /**

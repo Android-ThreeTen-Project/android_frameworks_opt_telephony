@@ -67,6 +67,8 @@ public abstract class BaseCommands implements CommandsInterface {
     protected RegistrantList mIccStatusChangedRegistrants = new RegistrantList();
     protected RegistrantList mVoicePrivacyOnRegistrants = new RegistrantList();
     protected RegistrantList mVoicePrivacyOffRegistrants = new RegistrantList();
+    @UnsupportedAppUsage
+    protected Registrant mUnsolOemHookRawRegistrant;
     protected RegistrantList mDisplayInfoRegistrants = new RegistrantList();
     protected RegistrantList mSignalInfoRegistrants = new RegistrantList();
     protected RegistrantList mRingbackToneRegistrants = new RegistrantList();
@@ -574,6 +576,17 @@ public abstract class BaseCommands implements CommandsInterface {
         mSignalInfoRegistrants.addUnique(h, what, obj);
     }
 
+    public void setOnUnsolOemHookRaw(Handler h, int what, Object obj) {
+        mUnsolOemHookRawRegistrant = new Registrant (h, what, obj);
+    }
+
+    public void unSetOnUnsolOemHookRaw(Handler h) {
+        if (mUnsolOemHookRawRegistrant != null && mUnsolOemHookRawRegistrant.getHandler() == h) {
+            mUnsolOemHookRawRegistrant.clear();
+            mUnsolOemHookRawRegistrant = null;
+        }
+    }
+
     @Override
     public void unregisterForSignalInfo(Handler h) {
         mSignalInfoRegistrants.remove(h);
@@ -802,6 +815,18 @@ public abstract class BaseCommands implements CommandsInterface {
     @Override
     public void unregisterForRadioCapabilityChanged(Handler h) {
         mPhoneRadioCapabilityChangedRegistrants.remove(h);
+    }
+
+    @Override
+    public void startLceService(int reportIntervalMs, boolean pullMode, Message result) {
+    }
+
+    @Override
+    public void stopLceService(Message result) {
+    }
+
+    @Override
+    public void pullLceData(Message result) {
     }
 
     @Override

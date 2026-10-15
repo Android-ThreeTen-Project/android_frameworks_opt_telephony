@@ -230,6 +230,7 @@ public abstract class Phone extends Handler implements PhoneInternalInterface {
     private static final int EVENT_UNSOL_OEM_HOOK_RAW               = 34;
     protected static final int EVENT_GET_RADIO_CAPABILITY           = 35;
     protected static final int EVENT_SS                             = 36;
+    private static final int EVENT_CONFIG_LCE                       = 37;
     private static final int EVENT_CHECK_FOR_NETWORK_AUTOMATIC      = 38;
     protected static final int EVENT_VOICE_RADIO_TECH_CHANGED       = 39;
     protected static final int EVENT_REQUEST_VOICE_RADIO_TECH_DONE  = 40;
@@ -396,6 +397,10 @@ public abstract class Phone extends Handler implements PhoneInternalInterface {
 
     private final AtomicReference<RadioCapability> mRadioCapability =
             new AtomicReference<RadioCapability>();
+
+    private static final int DEFAULT_REPORT_INTERVAL_MS = 200;
+    private static final boolean LCE_PULL_MODE = true;
+    private int mLceStatus = RILConstants.LCE_NOT_AVAILABLE;
 
     protected TelephonyComponentFactory mTelephonyComponentFactory;
 
@@ -689,6 +694,8 @@ public abstract class Phone extends Handler implements PhoneInternalInterface {
         if (mFeatureFlags.deleteCdma() || getPhoneType() != PhoneConstants.PHONE_TYPE_SIP) {
             mCi.registerForSrvccStateChanged(this, EVENT_SRVCC_STATE_CHANGED, null);
         }
+        mCi.startLceService(DEFAULT_REPORT_INTERVAL_MS, LCE_PULL_MODE,
+                obtainMessage(EVENT_CONFIG_LCE));
         //Initialize Telephony Analytics
         mTelephonyAnalytics = new TelephonyAnalytics(this);
     }
@@ -886,6 +893,16 @@ public abstract class Phone extends Handler implements PhoneInternalInterface {
 
             case EVENT_UNSOL_OEM_HOOK_RAW:
                 // deprecated, ignore
+                break;
+
+            case EVENT_CONFIG_LCE:
+                ar = (AsyncResult) msg.obj;
+                if (ar.exception != null) {
+                    Rlog.d(mLogTag, "config LCE service failed: " + ar.exception);
+                } else {
+                    final ArrayList<Integer> statusInfo = (ArrayList<Integer>) ar.result;
+                    mLceStatus = statusInfo.get(0);
+                }
                 break;
 
             case EVENT_CHECK_FOR_NETWORK_AUTOMATIC: {
@@ -2750,6 +2767,28 @@ public abstract class Phone extends Handler implements PhoneInternalInterface {
     }
 
     /**
+     * Invokes RIL_REQUEST_OEM_HOOK_RAW on the RIL implementation.
+     *
+     * @deprecated OEMs should use a vendor-extension HAL instead.
+     */
+    @UnsupportedAppUsage
+    @Deprecated
+    public void invokeOemRilRequestRaw(byte[] data, Message response) {
+        mCi.invokeOemRilRequestRaw(data, response);
+    }
+
+    /**
+     * Invokes RIL_REQUEST_OEM_HOOK_STRINGS on the RIL implementation.
+     *
+     * @deprecated OEMs should use a vendor-extension HAL instead.
+     */
+    @UnsupportedAppUsage
+    @Deprecated
+    public void invokeOemRilRequestStrings(String[] strings, Message response) {
+        mCi.invokeOemRilRequestStrings(strings, response);
+    }
+
+    /**
      * Perform the radio modem reboot. The radio will be taken offline.
      *
      * @param response Callback message.
@@ -4282,6 +4321,20 @@ public abstract class Phone extends Handler implements PhoneInternalInterface {
         }
 
         return mImsPhone.isImsAvailable();
+    }
+
+    /** Returns the status of Link Capacity Estimation (LCE) service. */
+    public int getLceStatus() {
+        return mLceStatus;
+    }
+
+    /**
+     * Starts LCE service after radio becomes available. LCE service state may get destroyed on the
+     * modem when radio becomes unavailable.
+     */
+    public void startLceAfterRadioIsAvailable() {
+        mCi.startLceService(DEFAULT_REPORT_INTERVAL_MS, LCE_PULL_MODE,
+                obtainMessage(EVENT_CONFIG_LCE));
     }
 
     /**

@@ -35,17 +35,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * A holder for IRadioNetwork.
- * Use getAidl to get IRadioNetwork and call the AIDL implementations of the HAL APIs.
+ * A holder for IRadioNetwork. Use getHidl to get IRadio 1.0 and call the HIDL implementations or
+ * getAidl to get IRadioNetwork and call the AIDL implementations of the HAL APIs.
  */
 public class RadioNetworkProxy extends RadioServiceProxy {
     private static final String TAG = "RadioNetworkProxy";
     private volatile android.hardware.radio.network.IRadioNetwork mNetworkProxy = null;
 
-    private static final int INDICATION_FILTERS_ALL_V1_2 =
+    private static final int INDICATION_FILTERS_ALL_V1_0 =
             android.hardware.radio.V1_5.IndicationFilter.SIGNAL_STRENGTH
                     | android.hardware.radio.V1_5.IndicationFilter.FULL_NETWORK_STATE
-                    | android.hardware.radio.V1_5.IndicationFilter.DATA_CALL_DORMANCY_CHANGED
+                    | android.hardware.radio.V1_5.IndicationFilter.DATA_CALL_DORMANCY_CHANGED;
+    private static final int INDICATION_FILTERS_ALL_V1_2 =
+            INDICATION_FILTERS_ALL_V1_0
                     | android.hardware.radio.V1_5.IndicationFilter.LINK_CAPACITY_ESTIMATE
                     | android.hardware.radio.V1_5.IndicationFilter.PHYSICAL_CHANNEL_CONFIG;
     private static final int INDICATION_FILTERS_ALL_V1_5 =
@@ -122,8 +124,11 @@ public class RadioNetworkProxy extends RadioServiceProxy {
             mNetworkProxy.getAllowedNetworkTypesBitmap(serial);
         } else if (mHalVersion.greaterOrEqual(RIL.RADIO_HAL_VERSION_1_6)) {
             ((android.hardware.radio.V1_6.IRadio) mRadioProxy).getAllowedNetworkTypesBitmap(serial);
+        } else if (mHalVersion.greaterOrEqual(RIL.RADIO_HAL_VERSION_1_4)) {
+            ((android.hardware.radio.V1_4.IRadio) mRadioProxy)
+                    .getPreferredNetworkTypeBitmap(serial);
         } else {
-            mRadioProxy.getPreferredNetworkTypeBitmap(serial);
+            mRadioProxy.getPreferredNetworkType(serial);
         }
     }
 
@@ -133,6 +138,14 @@ public class RadioNetworkProxy extends RadioServiceProxy {
      * @throws RemoteException
      */
     public void getAvailableBandModes(int serial) throws RemoteException {
+        if (isEmpty() || isAidl()) return;
+        mRadioProxy.getAvailableBandModes(serial);
+    }
+
+    /** Call the legacy HIDL IRadio#getCdmaRoamingPreference command. */
+    public void getCdmaRoamingPreference(int serial) throws RemoteException {
+        if (isEmpty() || isAidl()) return;
+        mRadioProxy.getCdmaRoamingPreference(serial);
     }
 
     /**
@@ -256,8 +269,10 @@ public class RadioNetworkProxy extends RadioServiceProxy {
             mNetworkProxy.getSignalStrength(serial);
         } else if (mHalVersion.greaterOrEqual(RIL.RADIO_HAL_VERSION_1_6)) {
             ((android.hardware.radio.V1_6.IRadio) mRadioProxy).getSignalStrength_1_6(serial);
+        } else if (mHalVersion.greaterOrEqual(RIL.RADIO_HAL_VERSION_1_4)) {
+            ((android.hardware.radio.V1_4.IRadio) mRadioProxy).getSignalStrength_1_4(serial);
         } else {
-            mRadioProxy.getSignalStrength_1_4(serial);
+            mRadioProxy.getSignalStrength(serial);
         }
     }
 
@@ -365,13 +380,18 @@ public class RadioNetworkProxy extends RadioServiceProxy {
      * Call IRadioNetwork#setPreferredNetworkTypeBitmap
      * @param serial Serial number of request
      * @param networkTypesBitmask Preferred network types bitmask to set
+     * @param networkType Preferred network type to set for RIL version < 1.4
      * @throws RemoteException
      */
-    public void setPreferredNetworkTypeBitmap(int serial, int networkTypesBitmask)
+    public void setPreferredNetworkTypeBitmap(int serial, int networkTypesBitmask, int networkType)
             throws RemoteException {
         if (isEmpty() || mHalVersion.greaterOrEqual(RIL.RADIO_HAL_VERSION_1_6)) return;
-        mRadioProxy.setPreferredNetworkTypeBitmap(serial,
-                RILUtils.convertToHalRadioAccessFamily(networkTypesBitmask));
+        if (mHalVersion.greaterOrEqual(RIL.RADIO_HAL_VERSION_1_4)) {
+            ((android.hardware.radio.V1_4.IRadio) mRadioProxy).setPreferredNetworkTypeBitmap(serial,
+                    RILUtils.convertToHalRadioAccessFamily(networkTypesBitmask));
+        } else {
+            mRadioProxy.setPreferredNetworkType(serial, networkType);
+        }
     }
 
     /**
@@ -381,6 +401,8 @@ public class RadioNetworkProxy extends RadioServiceProxy {
      * @throws RemoteException
      */
     public void setBandMode(int serial, int bandMode) throws RemoteException {
+        if (isEmpty() || isAidl()) return;
+        mRadioProxy.setBandMode(serial, bandMode);
     }
 
     /**
@@ -408,6 +430,8 @@ public class RadioNetworkProxy extends RadioServiceProxy {
      * @throws RemoteException
      */
     public void setCdmaRoamingPreference(int serial, int cdmaRoamingType) throws RemoteException {
+        if (isEmpty() || isAidl()) return;
+        mRadioProxy.setCdmaRoamingPreference(serial, cdmaRoamingType);
     }
 
     /**
@@ -438,8 +462,11 @@ public class RadioNetworkProxy extends RadioServiceProxy {
         } else if (mHalVersion.greaterOrEqual(RIL.RADIO_HAL_VERSION_1_5)) {
             ((android.hardware.radio.V1_5.IRadio) mRadioProxy).setIndicationFilter_1_5(serial,
                     filter & INDICATION_FILTERS_ALL_V1_5);
+        } else if (mHalVersion.greaterOrEqual(RIL.RADIO_HAL_VERSION_1_2)) {
+            ((android.hardware.radio.V1_2.IRadio) mRadioProxy).setIndicationFilter_1_2(serial,
+                    filter & INDICATION_FILTERS_ALL_V1_2);
         } else {
-            mRadioProxy.setIndicationFilter_1_2(serial, filter & INDICATION_FILTERS_ALL_V1_2);
+            mRadioProxy.setIndicationFilter(serial, filter & INDICATION_FILTERS_ALL_V1_0);
         }
     }
 
@@ -461,7 +488,7 @@ public class RadioNetworkProxy extends RadioServiceProxy {
     public void setLinkCapacityReportingCriteria(int serial, int hysteresisMs, int hysteresisDlKbps,
             int hysteresisUlKbps, int[] thresholdsDlKbps, int[] thresholdsUlKbps, int ran)
             throws RemoteException {
-        if (isEmpty()) return;
+        if (isEmpty() || mHalVersion.less(RIL.RADIO_HAL_VERSION_1_2)) return;
         if (isAidl()) {
             mNetworkProxy.setLinkCapacityReportingCriteria(serial, hysteresisMs, hysteresisDlKbps,
                     hysteresisUlKbps, thresholdsDlKbps, thresholdsUlKbps,
@@ -476,7 +503,7 @@ public class RadioNetworkProxy extends RadioServiceProxy {
             if (ran == AccessNetworkConstants.AccessNetworkType.NGRAN) {
                 throw new RuntimeException("NGRAN unsupported on IRadio version: " + mHalVersion);
             }
-            mRadioProxy.setLinkCapacityReportingCriteria(
+            ((android.hardware.radio.V1_2.IRadio) mRadioProxy).setLinkCapacityReportingCriteria(
                     serial, hysteresisMs, hysteresisDlKbps, hysteresisUlKbps,
                     RILUtils.primitiveArrayToArrayList(thresholdsDlKbps),
                     RILUtils.primitiveArrayToArrayList(thresholdsUlKbps),
@@ -492,6 +519,8 @@ public class RadioNetworkProxy extends RadioServiceProxy {
      * @throws RemoteException
      */
     public void setLocationUpdates(int serial, boolean enable) throws RemoteException {
+        if (isEmpty() || isAidl()) return;
+        mRadioProxy.setLocationUpdates(serial, enable);
     }
 
     /**
@@ -554,7 +583,7 @@ public class RadioNetworkProxy extends RadioServiceProxy {
      */
     public void setSignalStrengthReportingCriteria(int serial,
             @NonNull List<SignalThresholdInfo> signalThresholdInfos) throws RemoteException {
-        if (isEmpty()) return;
+        if (isEmpty() || mHalVersion.less(RIL.RADIO_HAL_VERSION_1_2)) return;
         if (isAidl()) {
             android.hardware.radio.network.SignalThresholdInfo[] halSignalThresholdsInfos =
             new android.hardware.radio.network.SignalThresholdInfo[signalThresholdInfos.size()];
@@ -573,12 +602,14 @@ public class RadioNetworkProxy extends RadioServiceProxy {
             }
         } else {
             for (SignalThresholdInfo signalThresholdInfo : signalThresholdInfos) {
-                mRadioProxy.setSignalStrengthReportingCriteria(serial,
-                        signalThresholdInfo.getHysteresisMs(),
-                        signalThresholdInfo.getHysteresisDb(),
-                        RILUtils.primitiveArrayToArrayList(signalThresholdInfo.getThresholds()),
-                        RILUtils.convertToHalAccessNetwork(
-                                signalThresholdInfo.getRadioAccessNetworkType()));
+                ((android.hardware.radio.V1_2.IRadio) mRadioProxy)
+                        .setSignalStrengthReportingCriteria(serial,
+                                signalThresholdInfo.getHysteresisMs(),
+                                signalThresholdInfo.getHysteresisDb(),
+                                RILUtils.primitiveArrayToArrayList(
+                                        signalThresholdInfo.getThresholds()),
+                                RILUtils.convertToHalAccessNetwork(
+                                        signalThresholdInfo.getRadioAccessNetworkType()));
             }
         }
     }
@@ -590,6 +621,8 @@ public class RadioNetworkProxy extends RadioServiceProxy {
      * @throws RemoteException
      */
     public void setSuppServiceNotifications(int serial, boolean enable) throws RemoteException {
+        if (isEmpty() || isAidl()) return;
+        mRadioProxy.setSuppServiceNotifications(serial, enable);
     }
 
     /**
@@ -600,7 +633,7 @@ public class RadioNetworkProxy extends RadioServiceProxy {
      */
     public void setSystemSelectionChannels(int serial, List<RadioAccessSpecifier> specifiers)
             throws RemoteException {
-        if (isEmpty()) return;
+        if (isEmpty() || mHalVersion.less(RIL.RADIO_HAL_VERSION_1_3)) return;
         if (isAidl()) {
             mNetworkProxy.setSystemSelectionChannels(serial, !specifiers.isEmpty(),
                     specifiers.stream().map(RILUtils::convertToHalRadioAccessSpecifierAidl)
@@ -611,8 +644,8 @@ public class RadioNetworkProxy extends RadioServiceProxy {
                             .map(RILUtils::convertToHalRadioAccessSpecifier15)
                             .collect(Collectors.toCollection(ArrayList::new)));
         } else {
-            mRadioProxy.setSystemSelectionChannels(serial, !specifiers.isEmpty(),
-                    specifiers.stream()
+            ((android.hardware.radio.V1_3.IRadio) mRadioProxy).setSystemSelectionChannels(
+                    serial, !specifiers.isEmpty(), specifiers.stream()
                             .map(RILUtils::convertToHalRadioAccessSpecifier11)
                             .collect(Collectors.toCollection(ArrayList::new)));
         }
@@ -627,7 +660,7 @@ public class RadioNetworkProxy extends RadioServiceProxy {
      */
     public void startNetworkScan(int serial, NetworkScanRequest request,
             HalVersion overrideHalVersion, Message result) throws RemoteException {
-        if (isEmpty()) return;
+        if (isEmpty() || mHalVersion.less(RIL.RADIO_HAL_VERSION_1_1)) return;
         if (isAidl()) {
             android.hardware.radio.network.NetworkScanRequest halRequest =
                     new android.hardware.radio.network.NetworkScanRequest();
@@ -677,7 +710,7 @@ public class RadioNetworkProxy extends RadioServiceProxy {
             }
             ((android.hardware.radio.V1_5.IRadio) mRadioProxy).startNetworkScan_1_5(
                     serial, halRequest);
-        } else {
+        } else if (mHalVersion.greaterOrEqual(RIL.RADIO_HAL_VERSION_1_2)) {
             android.hardware.radio.V1_2.NetworkScanRequest halRequest =
                     new android.hardware.radio.V1_2.NetworkScanRequest();
             halRequest.type = request.getScanType();
@@ -698,7 +731,31 @@ public class RadioNetworkProxy extends RadioServiceProxy {
                 }
                 halRequest.specifiers.add(rasInHalFormat);
             }
-            mRadioProxy.startNetworkScan_1_4(serial, halRequest);
+
+            if (mHalVersion.greaterOrEqual(RIL.RADIO_HAL_VERSION_1_4)) {
+                ((android.hardware.radio.V1_4.IRadio) mRadioProxy).startNetworkScan_1_4(
+                        serial, halRequest);
+            } else {
+                ((android.hardware.radio.V1_2.IRadio) mRadioProxy).startNetworkScan_1_2(
+                        serial, halRequest);
+            }
+        } else {
+            android.hardware.radio.V1_1.NetworkScanRequest halRequest =
+                    new android.hardware.radio.V1_1.NetworkScanRequest();
+            halRequest.type = request.getScanType();
+            halRequest.interval = request.getSearchPeriodicity();
+            for (RadioAccessSpecifier ras : request.getSpecifiers()) {
+                android.hardware.radio.V1_1.RadioAccessSpecifier rasInHalFormat =
+                        RILUtils.convertToHalRadioAccessSpecifier11(ras);
+                if (rasInHalFormat == null) {
+                    AsyncResult.forMessage(result, null,
+                            CommandException.fromRilErrno(REQUEST_NOT_SUPPORTED));
+                    result.sendToTarget();
+                    return;
+                }
+                halRequest.specifiers.add(rasInHalFormat);
+            }
+            ((android.hardware.radio.V1_1.IRadio) mRadioProxy).startNetworkScan(serial, halRequest);
         }
     }
 
@@ -708,11 +765,11 @@ public class RadioNetworkProxy extends RadioServiceProxy {
      * @throws RemoteException
      */
     public void stopNetworkScan(int serial) throws RemoteException {
-        if (isEmpty()) return;
+        if (isEmpty() || mHalVersion.less(RIL.RADIO_HAL_VERSION_1_1)) return;
         if (isAidl()) {
             mNetworkProxy.stopNetworkScan(serial);
         } else {
-            mRadioProxy.stopNetworkScan(serial);
+            ((android.hardware.radio.V1_1.IRadio) mRadioProxy).stopNetworkScan(serial);
         }
     }
 

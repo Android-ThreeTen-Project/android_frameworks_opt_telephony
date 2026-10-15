@@ -165,7 +165,7 @@ public class DataServiceManagerTest extends TelephonyTest {
                 message);
         waitAndVerifyResult(message, DataServiceCallback.RESULT_SUCCESS);
         verify(mSimulatedCommandsVerifier).setupDataCall(anyInt(), any(DataProfile.class),
-                anyBoolean(), anyInt(), any(), anyInt(), any(), any(), anyBoolean(),
+                anyBoolean(), anyBoolean(), anyInt(), any(), anyInt(), any(), any(), anyBoolean(),
                 any(Message.class));
     }
 
@@ -178,7 +178,7 @@ public class DataServiceManagerTest extends TelephonyTest {
                 message);
         waitAndVerifyResult(message, DataServiceCallback.RESULT_ERROR_ILLEGAL_STATE);
         verify(mSimulatedCommandsVerifier, never()).setupDataCall(anyInt(), any(DataProfile.class),
-                anyBoolean(), anyInt(), any(), anyInt(), any(), any(), anyBoolean(),
+                anyBoolean(), anyBoolean(), anyInt(), any(), anyInt(), any(), any(), anyBoolean(),
                 any(Message.class));
     }
 
@@ -209,7 +209,7 @@ public class DataServiceManagerTest extends TelephonyTest {
         mDataServiceManagerUT.setInitialAttachApn(mGeneralPurposeDataProfile, false, message);
         waitAndVerifyResult(message, DataServiceCallback.RESULT_SUCCESS);
         verify(mSimulatedCommandsVerifier).setInitialAttachApn(any(DataProfile.class),
-                any(Message.class));
+                anyBoolean(), any(Message.class));
     }
 
     @Test
@@ -219,7 +219,7 @@ public class DataServiceManagerTest extends TelephonyTest {
         mDataServiceManagerUT.setInitialAttachApn(mGeneralPurposeDataProfile, false, message);
         waitAndVerifyResult(message, DataServiceCallback.RESULT_ERROR_ILLEGAL_STATE);
         verify(mSimulatedCommandsVerifier, never()).setInitialAttachApn(any(DataProfile.class),
-                any(Message.class));
+                anyBoolean(), any(Message.class));
     }
 
     @Test
@@ -228,7 +228,7 @@ public class DataServiceManagerTest extends TelephonyTest {
         Message message = mHandler.obtainMessage(1234);
         mDataServiceManagerUT.setDataProfile(List.of(mGeneralPurposeDataProfile), false, message);
         waitAndVerifyResult(message, DataServiceCallback.RESULT_SUCCESS);
-        verify(mSimulatedCommandsVerifier).setDataProfile(any(DataProfile[].class),
+        verify(mSimulatedCommandsVerifier).setDataProfile(any(DataProfile[].class), anyBoolean(),
                 any(Message.class));
     }
 
@@ -239,7 +239,7 @@ public class DataServiceManagerTest extends TelephonyTest {
         mDataServiceManagerUT.setDataProfile(List.of(mGeneralPurposeDataProfile), false, message);
         waitAndVerifyResult(message, DataServiceCallback.RESULT_ERROR_ILLEGAL_STATE);
         verify(mSimulatedCommandsVerifier, never()).setDataProfile(any(DataProfile[].class),
-                any(Message.class));
+                anyBoolean(), any(Message.class));
     }
 
     @Test

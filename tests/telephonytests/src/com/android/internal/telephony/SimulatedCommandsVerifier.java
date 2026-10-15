@@ -490,6 +490,11 @@ public class SimulatedCommandsVerifier implements CommandsInterface {
     }
 
     @Override
+    public void getPDPContextList(Message result) {
+
+    }
+
+    @Override
     public void getDataCallList(Message result) {
 
     }
@@ -512,6 +517,16 @@ public class SimulatedCommandsVerifier implements CommandsInterface {
 
     @Override
     public void getIMSIForApp(String aid, Message result) {
+
+    }
+
+    @Override
+    public void getIMEI(Message result) {
+
+    }
+
+    @Override
+    public void getIMEISV(Message result) {
 
     }
 
@@ -572,6 +587,16 @@ public class SimulatedCommandsVerifier implements CommandsInterface {
 
     @Override
     public void getLastCallFailCause(Message result) {
+
+    }
+
+    @Override
+    public void getLastPdpFailCause(Message result) {
+
+    }
+
+    @Override
+    public void getLastDataCallFailCause(Message result) {
 
     }
 
@@ -811,6 +836,21 @@ public class SimulatedCommandsVerifier implements CommandsInterface {
     }
 
     @Override
+    public void resetRadio(Message result) {
+
+    }
+
+    @Override
+    public void setBandMode(int bandMode, Message response) {
+
+    }
+
+    @Override
+    public void queryAvailableBandMode(Message response) {
+
+    }
+
+    @Override
     public void setPreferredNetworkType(int networkType, Message response) {
 
     }
@@ -848,6 +888,26 @@ public class SimulatedCommandsVerifier implements CommandsInterface {
 
     @Override
     public void reportStkServiceIsRunning(Message result) {
+
+    }
+
+    @Override
+    public void invokeOemRilRequestRaw(byte[] data, Message response) {
+
+    }
+
+    @Override
+    public void invokeOemRilRequestStrings(String[] strings, Message response) {
+
+    }
+
+    @Override
+    public void setOnUnsolOemHookRaw(Handler h, int what, Object obj) {
+
+    }
+
+    @Override
+    public void unSetOnUnsolOemHookRaw(Handler h) {
 
     }
 
@@ -912,9 +972,10 @@ public class SimulatedCommandsVerifier implements CommandsInterface {
     }
 
     @Override
-    public void setupDataCall(int accessNetworkType, DataProfile dataProfile, boolean allowRoaming,
-            int reason, LinkProperties linkProperties, int pduSessionId, NetworkSliceInfo sliceInfo,
-            TrafficDescriptor trafficDescriptor, boolean matchAllRuleAllowed, Message result) {
+    public void setupDataCall(int accessNetworkType, DataProfile dataProfile, boolean isRoaming,
+            boolean allowRoaming, int reason, LinkProperties linkProperties, int pduSessionId,
+            NetworkSliceInfo sliceInfo, TrafficDescriptor trafficDescriptor,
+            boolean matchAllRuleAllowed, Message result) {
     }
 
     @Override
@@ -945,6 +1006,14 @@ public class SimulatedCommandsVerifier implements CommandsInterface {
     @Override
     public void getIccCardStatus(Message result) {
 
+    }
+
+    @Override
+    public void getIccSlotsStatus(Message result) {
+    }
+
+    @Override
+    public void setLogicalToPhysicalSlotMapping(int[] physicalSlots, Message result) {
     }
 
     @Override
@@ -985,12 +1054,12 @@ public class SimulatedCommandsVerifier implements CommandsInterface {
     }
 
     @Override
-    public void setInitialAttachApn(DataProfile dataProfile, Message result) {
+    public void setInitialAttachApn(DataProfile dataProfile, boolean isRoaming, Message result) {
 
     }
 
     @Override
-    public void setDataProfile(DataProfile[] dps, Message result) {
+    public void setDataProfile(DataProfile[] dps, boolean isRoaming, Message result) {
 
     }
 
@@ -1070,6 +1139,21 @@ public class SimulatedCommandsVerifier implements CommandsInterface {
 
     @Override
     public void unregisterForRadioCapabilityChanged(Handler h) {
+
+    }
+
+    @Override
+    public void startLceService(int reportIntervalMs, boolean pullMode, Message result) {
+
+    }
+
+    @Override
+    public void stopLceService(Message result) {
+
+    }
+
+    @Override
+    public void pullLceData(Message result) {
 
     }
 
